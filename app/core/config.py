@@ -69,6 +69,32 @@ class Settings(BaseSettings):
         default="http://localhost:5173,http://127.0.0.1:5173", env="ALLOWED_ORIGINS"
     )
 
+    # AI features (grading assist, report narratives, journal digests).
+    # Generation runs through the local hermes agent CLI's built-in "deepseek"
+    # provider, using hermes's default profile (no custom OmniRoute gateway —
+    # that layer was dropped in favor of calling DeepSeek directly).
+    hermes_binary: str = Field(default="hermes", env="HERMES_BINARY")
+    hermes_profile: str = Field(default="default", env="HERMES_PROFILE")
+    hermes_provider: str = Field(default="deepseek", env="HERMES_PROVIDER")
+    hermes_model: str = Field(default="mcode/mimo-auto", env="HERMES_MODEL")
+    hermes_timeout_seconds: int = Field(default=90, env="HERMES_TIMEOUT_SECONDS")
+
+    # AI Tutor (DeepTutor). ourschool's backend logs in server-side to each
+    # student's own DeepTutor account (DeepTutor has no admin
+    # login-as-user endpoint, only direct username/password login) and
+    # hands the frontend a short-lived JWT, so DeepTutor credentials never
+    # reach the browser. JSON object: {"<ourschool_student_id>":
+    # {"username": "<deeptutor_username>", "password": "<deeptutor_password>"}}.
+    deeptutor_base_url: str = Field(default="http://127.0.0.1:8001", env="DEEPTUTOR_BASE_URL")
+    # Address the student's BROWSER can reach for the tutor WebSocket, when it
+    # differs from deeptutor_base_url (e.g. both services run on a remote VPS
+    # host, but the browser is on the family's local machine). Falls back to
+    # deeptutor_base_url when unset (same-host / local dev setup).
+    deeptutor_public_base_url: str = Field(default="", env="DEEPTUTOR_PUBLIC_BASE_URL")
+    deeptutor_student_credentials_map: str = Field(
+        default="{}", env="DEEPTUTOR_STUDENT_CREDENTIALS_MAP"
+    )
+
     @computed_field
     @property
     def effective_database_url(self) -> str:

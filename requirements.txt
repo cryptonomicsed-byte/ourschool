@@ -22,3 +22,6 @@ bcrypt==5.0.0
 # Data validation and settings
 pydantic[email]==2.13.4
 pydantic-settings==2.14.2
+
+# HTTP client (DeepTutor AI tutor integration)
+httpx==0.28.1

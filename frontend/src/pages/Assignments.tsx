@@ -26,7 +26,7 @@ import { useAssignmentFilters } from '../hooks/useAssignmentFilters'
 import { Pill, statusToPillVariant, SubjectDot, useToast } from '../components/ui'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import StudentAssignmentCard from '../components/assignments/StudentAssignmentCard'
-import SubmissionDialog from '../components/assignments/SubmissionDialog'
+import AssignmentWorkspace from '../components/assignments/AssignmentWorkspace'
 import QuickAssignModal from '../components/assignments/QuickAssignModal'
 import { StudentAssignment, Term } from '../types'
 import { formatDateOnly, isPastDateOnly } from '../utils/formatters'
@@ -65,7 +65,6 @@ const Assignments: React.FC = () => {
     loading,
     error,
     refetch,
-    setError,
   } = useAssignments({ isAdmin, adminViewMode: 'grading', selectedSubject })
 
   // Terms are admin-only and have no hook equivalent — loaded locally
@@ -81,8 +80,7 @@ const Assignments: React.FC = () => {
 
   // ── Modals ──
   const [showQuickAssign, setShowQuickAssign] = useState(false)
-  const [submittingAssignment, setSubmittingAssignment] = useState<StudentAssignment | null>(null)
-  const [showSubmissionDialog, setShowSubmissionDialog] = useState(false)
+  const [activeAssignment, setActiveAssignment] = useState<StudentAssignment | null>(null)
   const [unassigningAssignment, setUnassigningAssignment] = useState<StudentAssignment | null>(null)
   const [unassignLoading, setUnassignLoading] = useState(false)
   const [showBulkUnassignConfirm, setShowBulkUnassignConfirm] = useState(false)
@@ -218,32 +216,9 @@ const Assignments: React.FC = () => {
     }
   }
 
-  const handleStartAssignment = async (assignmentId: number) => {
-    try {
-      await assignmentsApi.startAssignment(assignmentId)
-      refetch()
-    } catch {
-      setError('Failed to start assignment')
-    }
-  }
-
-  const handleCompleteAssignment = (assignment: StudentAssignment) => {
-    if (assignment.status === 'in_progress') {
-      setSubmittingAssignment(assignment)
-      setShowSubmissionDialog(true)
-    }
-  }
-
-  const handleSubmitAssignment = async (submissionData: { submission_notes?: string; submission_artifacts?: string[] }) => {
-    if (!submittingAssignment) return
-    try {
-      await assignmentsApi.updateStudentAssignment(submittingAssignment.id, { status: 'submitted', ...submissionData })
-      setShowSubmissionDialog(false)
-      setSubmittingAssignment(null)
-      refetch()
-    } catch {
-      setError('Failed to submit assignment')
-    }
+  const handleAssignmentSubmitted = () => {
+    setActiveAssignment(null)
+    refetch()
   }
 
   // ── Bulk handlers ──
@@ -835,15 +810,17 @@ const Assignments: React.FC = () => {
                 </p>
               </div>
             ) : filteredStudentAssignments.map(assignment => (
-              <StudentAssignmentCard
+              <button
                 key={assignment.id}
-                assignment={assignment}
-                subject={assignment.template?.subject_id ? getSubjectById(assignment.template.subject_id) : undefined}
-                isAdmin={false}
-                onStart={handleStartAssignment}
-                onComplete={handleCompleteAssignment}
-                onDelete={handleUnassignAssignment}
-              />
+                onClick={() => setActiveAssignment(assignment)}
+                className="text-left"
+              >
+                <StudentAssignmentCard
+                  assignment={assignment}
+                  subject={assignment.template?.subject_id ? getSubjectById(assignment.template.subject_id) : undefined}
+                  isAdmin={false}
+                />
+              </button>
             ))}
           </div>
         </>
@@ -858,13 +835,13 @@ const Assignments: React.FC = () => {
         />
       )}
 
-      {showSubmissionDialog && submittingAssignment && (
-        <SubmissionDialog
-          assignment={submittingAssignment}
-          isOpen={showSubmissionDialog}
-          onClose={() => { setShowSubmissionDialog(false); setSubmittingAssignment(null) }}
-          onSubmit={handleSubmitAssignment}
-          loading={false}
+      {activeAssignment && (
+        <AssignmentWorkspace
+          assignment={activeAssignment}
+          subject={activeAssignment.template?.subject_id ? getSubjectById(activeAssignment.template.subject_id) : undefined}
+          isOpen={!!activeAssignment}
+          onClose={() => setActiveAssignment(null)}
+          onSubmitted={handleAssignmentSubmitted}
         />
       )}
 

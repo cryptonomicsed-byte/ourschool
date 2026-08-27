@@ -26,6 +26,7 @@ from .assignment import (
 )
 from .assignment_type import AssignmentTypeConfig
 from .attendance import AttendanceRecord, AttendanceStatus
+from .copilot import CopilotConversation, CopilotMessage, CopilotProposal
 from .journal import JournalEntry, JournalReply
 from .subject import Subject
 from .term import GradeHistory, StudentTermGrade, Term, TermSubject, TermType
@@ -40,6 +41,9 @@ __all__ = [
     "AssignmentTypeConfig",
     "AttendanceRecord",
     "AttendanceStatus",
+    "CopilotConversation",
+    "CopilotMessage",
+    "CopilotProposal",
     "GradeHistory",
     "JournalEntry",
     "JournalReply",

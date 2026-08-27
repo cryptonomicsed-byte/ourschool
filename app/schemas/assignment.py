@@ -46,6 +46,7 @@ class AssignmentTemplateBase(BaseModel):
     prerequisites: Optional[str] = None
     materials_needed: Optional[str] = None
     is_exportable: bool = True
+    is_ai_generated: bool = False
 
 
 class AssignmentTemplateCreate(AssignmentTemplateBase):

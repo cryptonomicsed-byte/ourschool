@@ -20,15 +20,30 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { settingsApi } from '../services/settings'
 import { pointsApi, type PointsSystemStatus } from '../services/points'
-import { Settings, Save, AlertTriangle, CheckCircle, Calendar, Coins, Key, ExternalLink } from 'lucide-react'
+import { Settings, Save, AlertTriangle, CheckCircle, Calendar, Coins, Key, ExternalLink, Bot } from 'lucide-react'
 import { Button, EmptyState, Input, Spinner } from '../components/ui'
 import { getErrorMessage } from '../services/api'
+
+const AI_MODEL_SETTING_KEY = 'ai.copilot_model'
+
+// Curated to models actually reachable through hermes's built-in "deepseek"
+// provider (see app/services/ai_client.py) — the only provider currently
+// wired with a working API key.
+const AI_MODEL_OPTIONS = [
+  { provider: 'deepseek', model: 'deepseek/deepseek-v4-flash', label: 'DeepSeek V4 Flash (fast, default)' },
+  { provider: 'deepseek', model: 'deepseek/deepseek-chat', label: 'DeepSeek Chat' },
+  { provider: 'deepseek', model: 'deepseek/deepseek-reasoner', label: 'DeepSeek Reasoner (slower, shows reasoning)' },
+]
 
 const AdminSettings: React.FC = () => {
   const { user } = useAuth()
   // Note: removed settings state as it was only used to extract required_days
   const [requiredDays, setRequiredDays] = useState<number>(180)
   const [pointsStatus, setPointsStatus] = useState<PointsSystemStatus | null>(null)
+  const [aiModel, setAiModel] = useState<string>(AI_MODEL_OPTIONS[0].model)
+  const [copilotMode, setCopilotMode] = useState<'agent' | 'direct'>('agent')
+  const [savingAiModel, setSavingAiModel] = useState(false)
+  const [savingCopilotMode, setSavingCopilotMode] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [togglingPoints, setTogglingPoints] = useState(false)
@@ -49,6 +64,18 @@ const AdminSettings: React.FC = () => {
       })
       .then(pointsSystemStatus => {
         setPointsStatus(pointsSystemStatus)
+        return settingsApi.getSetting(AI_MODEL_SETTING_KEY).catch(() => null)
+      })
+      .then(aiModelSetting => {
+        if (aiModelSetting) {
+          try {
+            const parsed = JSON.parse(aiModelSetting.setting_value)
+            if (parsed.model) setAiModel(parsed.model)
+            if (parsed.mode === 'agent' || parsed.mode === 'direct') setCopilotMode(parsed.mode)
+          } catch {
+            // leave defaults
+          }
+        }
       })
       .catch(err => {
         setError(`Failed to load settings: ${getErrorMessage(err, 'Unknown error')}`)
@@ -78,6 +105,49 @@ const AdminSettings: React.FC = () => {
       setError(`Failed to update setting: ${getErrorMessage(err, 'Unknown error')}`)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const saveAiModel = async (model: string) => {
+    const option = AI_MODEL_OPTIONS.find((o) => o.model === model)
+    if (!option) return
+    try {
+      setSavingAiModel(true)
+      setError(null)
+      setSuccessMessage(null)
+      await settingsApi.upsertSetting(
+        AI_MODEL_SETTING_KEY,
+        JSON.stringify({ provider: option.provider, model: option.model, mode: copilotMode }),
+        'json',
+        'Model + mode used by the Copilot, AI Tutor, weekly planner, and auto-grading'
+      )
+      setAiModel(model)
+      setSuccessMessage('AI copilot model updated successfully!')
+    } catch (err) {
+      setError(`Failed to update AI model: ${getErrorMessage(err, 'Unknown error')}`)
+    } finally {
+      setSavingAiModel(false)
+    }
+  }
+
+  const saveCopilotMode = async (mode: 'agent' | 'direct') => {
+    const option = AI_MODEL_OPTIONS.find((o) => o.model === aiModel) || AI_MODEL_OPTIONS[0]
+    try {
+      setSavingCopilotMode(true)
+      setError(null)
+      setSuccessMessage(null)
+      await settingsApi.upsertSetting(
+        AI_MODEL_SETTING_KEY,
+        JSON.stringify({ provider: option.provider, model: aiModel, mode }),
+        'json',
+        'Model + mode used by the Copilot, AI Tutor, weekly planner, and auto-grading'
+      )
+      setCopilotMode(mode)
+      setSuccessMessage('Copilot mode updated successfully!')
+    } catch (err) {
+      setError(`Failed to update copilot mode: ${getErrorMessage(err, 'Unknown error')}`)
+    } finally {
+      setSavingCopilotMode(false)
     }
   }
 
@@ -223,6 +293,94 @@ const AdminSettings: React.FC = () => {
             <p className="text-[13px] text-muted mt-1">
               This ensures compliance with educational requirements regardless of your actual term dates or calendar structure.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* AI Copilot Settings */}
+      <div className="bg-panel border border-line rounded-card p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Bot className="h-4 w-4 text-faint" />
+          <h2 className="text-[15px] font-semibold text-ink">AI Copilot</h2>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="ai-model" className="block text-[12px] font-semibold text-muted uppercase tracking-wide mb-1.5">
+              Copilot / Teacher Model
+            </label>
+            <p className="text-[13px] text-muted mb-3">
+              The model used everywhere the AI acts as teacher: the AI Tutor chat, the weekly
+              assignment planner, and auto-grading of AI-generated work.
+            </p>
+            <div className="flex items-center gap-3">
+              <select
+                id="ai-model"
+                value={aiModel}
+                onChange={(e) => saveAiModel(e.target.value)}
+                disabled={savingAiModel}
+                className="h-9 px-3 rounded-field border border-line bg-panel text-[13px] text-ink min-w-[320px]"
+              >
+                {AI_MODEL_OPTIONS.map((o) => (
+                  <option key={o.model} value={o.model}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              {savingAiModel && <Spinner size="sm" />}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[12px] font-semibold text-muted uppercase tracking-wide mb-1.5">
+              Copilot Mode
+            </label>
+            <p className="text-[13px] text-muted mb-3">
+              How the Copilot chat (for both you and Jalayna) answers. Doesn't affect the AI Tutor,
+              weekly planner, or auto-grading — those always use the model above directly.
+            </p>
+            <div className="flex flex-col gap-2">
+              <label className="flex items-start gap-3 p-3 rounded-field border border-line cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                <input
+                  type="radio"
+                  name="copilot-mode"
+                  checked={copilotMode === 'agent'}
+                  onChange={() => saveCopilotMode('agent')}
+                  disabled={savingCopilotMode}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block text-[13px] font-semibold text-ink">Agent (Recommended)</span>
+                  <span className="block text-[12.5px] text-muted">
+                    The sovereign hermes agent — real access to your school data (grades, attendance,
+                    DeepTutor mastery) via tools, persistent memory across chats, and can propose real
+                    changes for you to approve.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 p-3 rounded-field border border-line cursor-pointer has-[:checked]:border-accent has-[:checked]:bg-accent/5">
+                <input
+                  type="radio"
+                  name="copilot-mode"
+                  checked={copilotMode === 'direct'}
+                  onChange={() => saveCopilotMode('direct')}
+                  disabled={savingCopilotMode}
+                  className="mt-0.5"
+                />
+                <span>
+                  <span className="block text-[13px] font-semibold text-ink">Direct LLM</span>
+                  <span className="block text-[12.5px] text-muted">
+                    Plain chat with the model above — no tools, no memory, no proposals. Faster, but
+                    it can't see your real data or take any action.
+                  </span>
+                </span>
+              </label>
+              {savingCopilotMode && (
+                <div className="flex items-center gap-2 text-[12px] text-muted">
+                  <Spinner size="sm" /> Saving...
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

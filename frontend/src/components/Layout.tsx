@@ -38,7 +38,10 @@ import { type LucideIcon,
   Moon,
   Monitor,
   BookOpen,
+  LayoutGrid,
+  Bot,
 } from 'lucide-react'
+import FloatingTutorWidget from './aiTutor/FloatingTutorWidget'
 
 const OurSchoolMark: React.FC = () => (
   <div className="flex items-center gap-2.5 select-none">
@@ -190,15 +193,19 @@ const Layout: React.FC = () => {
     { name: 'Dashboard', href: '/', icon: Home },
     ...(isAdmin
       ? [
+          { name: 'Copilot', href: '/copilot', icon: Bot },
           { name: 'Attendance', href: '/attendance', icon: Calendar },
           { name: 'Assignments', href: '/assignments', icon: ClipboardList },
           { name: 'Templates', href: '/templates', icon: BookOpen },
           { name: 'Grading', href: '/grading', icon: GraduationCap },
           { name: 'Journal', href: '/journal', icon: PenTool },
           { name: 'Reports', href: '/reports', icon: BarChart3 },
-          { name: 'Settings', href: '/admin', icon: Settings },
+          { name: 'Admin', href: '/admin', icon: Settings },
+          { name: 'System Settings', href: '/admin/settings', icon: Settings },
         ]
       : [
+          { name: 'Copilot', href: '/copilot', icon: Bot },
+          { name: 'Workboard', href: '/workboard', icon: LayoutGrid },
           { name: 'Assignments', href: '/assignments', icon: ClipboardList },
           { name: 'Journal', href: '/journal', icon: PenTool },
           { name: 'My Points', href: '/my-points', icon: Coins },
@@ -269,6 +276,8 @@ const Layout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {!isAdmin && <FloatingTutorWidget />}
     </div>
   )
 }

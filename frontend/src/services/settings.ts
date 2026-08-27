@@ -88,4 +88,25 @@ export const settingsApi = {
   updateCountExcused: async (value: boolean): Promise<SystemSetting> => {
     return await api.put(`/settings/attendance/count-excused?count_excused=${value}`, {})
   },
+
+  // Create-or-update: the generic PUT endpoint 404s if the key was never
+  // written before (e.g. a fresh install), so fall back to POST.
+  upsertSetting: async (
+    settingKey: string,
+    value: string,
+    settingType: string = 'json',
+    description?: string
+  ): Promise<SystemSetting> => {
+    try {
+      return await settingsApi.updateSetting(settingKey, value, description)
+    } catch {
+      const response = await api.post('/settings/', {
+        setting_key: settingKey,
+        setting_value: value,
+        setting_type: settingType,
+        description,
+      })
+      return response
+    }
+  },
 }

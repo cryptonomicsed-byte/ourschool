@@ -16,6 +16,7 @@
 
 """Student assignment endpoints: assigning templates and student assignment lifecycle."""
 
+import asyncio
 import json
 import logging
 from datetime import date
@@ -49,6 +50,7 @@ from app.schemas.assignment import (
     StudentAssignmentUpdate,
 )
 from app.utils.grading import assignment_status_filter
+from app.services.ai_autograde import autograde_submission
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -480,6 +482,14 @@ def complete_assignment(
 
     assignment.update_status()
     db.commit()
+
+    if assignment.template and assignment.template.is_ai_generated:
+        # The copilot that assigned AI-generated work also grades it
+        # immediately, rather than waiting on manual parent review.
+        graded = asyncio.run(autograde_submission(db, assignment))
+        if graded:
+            db.commit()
+
     db.refresh(assignment)
 
     return assignment

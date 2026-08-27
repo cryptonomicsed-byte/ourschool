@@ -31,6 +31,7 @@ import { useEffect, Suspense, lazy } from 'react'
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Attendance = lazy(() => import('./pages/Attendance'))
+const Workboard = lazy(() => import('./pages/Workboard'))
 const Assignments = lazy(() => import('./pages/Assignments'))
 const Templates = lazy(() => import('./pages/Templates'))
 const Grading = lazy(() => import('./pages/Grading'))
@@ -39,6 +40,7 @@ const Reports = lazy(() => import('./pages/Reports'))
 const Journal = lazy(() => import('./pages/Journal'))
 const Admin = lazy(() => import('./pages/Admin'))
 const AdminSettings = lazy(() => import('./pages/AdminSettings'))
+const Copilot = lazy(() => import('./pages/Copilot'))
 const MyPoints = lazy(() => import('./pages/MyPoints'))
 const ChangePasswordRequired = lazy(() => import('./pages/ChangePasswordRequired'))
 
@@ -94,6 +96,7 @@ function AppContent() {
           <Route path="/" element={<ProtectedRoute><RequirePasswordChange><Layout /></RequirePasswordChange></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="attendance" element={<Attendance />} />
+            <Route path="workboard" element={<Workboard />} />
             <Route path="assignments" element={<Assignments />} />
             <Route path="templates" element={<Templates />} />
             <Route path="grading" element={<Grading />} />
@@ -102,6 +105,7 @@ function AppContent() {
             <Route path="profile" element={<Profile />} />
             <Route path="admin" element={<Admin />} />
             <Route path="admin/settings" element={<AdminSettings />} />
+            <Route path="copilot" element={<Copilot />} />
             <Route path="my-points" element={<MyPoints />} />
           </Route>
         </Routes>

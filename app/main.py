@@ -37,12 +37,14 @@ from app.models.user import User
 from app.routers.auth import get_current_admin_user
 from app.routers import (
     activity,
+    ai,
     api_keys,
     assignment_types,
     assignments,
     attendance,
     auth,
     backup,
+    copilot,
     integrations,
     journal,
     meta,
@@ -67,6 +69,10 @@ async def lifespan(app: FastAPI):
         "OurSchool API starting up",
         extra={"application": "ourschool", "version": __version__, "event": "startup"},
     )
+
+    from app.services.copilot_service import ensure_copilot_tables
+
+    ensure_copilot_tables()
 
     yield
 
@@ -170,6 +176,7 @@ async def request_logging_middleware(request: Request, call_next):
 app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(activity.router, prefix="/api/activity", tags=["activity"])
+app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(attendance.router, prefix="/api/attendance", tags=["attendance"])
 app.include_router(subjects.router, prefix="/api/subjects", tags=["subjects"])
 app.include_router(meta.router, prefix="/api", tags=["meta"])
@@ -186,6 +193,7 @@ app.include_router(settings_router.router, prefix="/api/settings", tags=["settin
 app.include_router(performance.router, prefix="/api/performance", tags=["performance"])
 app.include_router(api_keys.router, prefix="/api", tags=["api-keys"])
 app.include_router(integrations.router, prefix="/api", tags=["integrations"])
+app.include_router(copilot.router, prefix="/api/copilot", tags=["copilot"])
 
 
 @app.get("/")

@@ -80,6 +80,11 @@ class AssignmentTemplate(Base):
     # When unset consumers fall back to the assignment type's icon, then the subject's.
     icon = Column(String(50), nullable=True)
 
+    # True for templates created by the AI weekly planner. Submissions against
+    # these are auto-graded by the copilot instead of waiting on a parent's
+    # manual grading-assist review.
+    is_ai_generated = Column(Boolean, nullable=False, default=False)
+
     # Export/Import capabilities
     is_exportable = Column(Boolean, default=True)
     export_data = Column(Text)  # JSON string for export/import
